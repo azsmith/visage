@@ -872,6 +872,7 @@ namespace visage {
 
   WindowMac::WindowMac(int width, int height, float scale, void* parent_handle) :
       Window(width, height) {
+    setDpiScale(scale);
     parent_view_ = (__bridge NSView*)parent_handle;
     CGRect view_frame = CGRectMake(0.0f, 0.0f, width / scale, height / scale);
 
@@ -879,7 +880,10 @@ namespace visage {
     view_delegate_ = [[VisageAppViewDelegate alloc] initWithWindow:this];
     view_.delegate = view_delegate_;
     view_.allow_quit = false;
+    view_.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     [parent_view_ addSubview:view_];
+    if (parent_view_.window)
+      setParentWindow(parent_view_.window);
 
     NativeWindowLookup::instance().addWindow(this);
   }
@@ -942,11 +946,32 @@ namespace visage {
     [window_handle_ makeFirstResponder:view_];
     [NSApp activateIgnoringOtherApps:YES];
     resetBackingScale();
+
+    CGSize drawable_size = view_.drawableSize;
+    int width = drawable_size.width > 0.0 ? std::round(drawable_size.width)
+                                          : std::round(view_.bounds.size.width * dpiScale());
+    int height = drawable_size.height > 0.0 ? std::round(drawable_size.height)
+                                            : std::round(view_.bounds.size.height * dpiScale());
+    handleResized(width, height);
   }
 
   void WindowMac::resetBackingScale() {
-    if (window_handle_)
-      setDpiScale([window_handle_ backingScaleFactor]);
+    if (window_handle_ == nullptr)
+      return;
+
+    float previous_scale = dpiScale();
+    float new_scale = [window_handle_ backingScaleFactor];
+    setDpiScale(new_scale);
+
+    if (std::abs(previous_scale - new_scale) < 0.001f)
+      return;
+
+    CGSize drawable_size = view_.drawableSize;
+    int width = drawable_size.width > 0.0 ? std::round(drawable_size.width)
+                                          : std::round(view_.bounds.size.width * new_scale);
+    int height = drawable_size.height > 0.0 ? std::round(drawable_size.height)
+                                            : std::round(view_.bounds.size.height * new_scale);
+    handleResized(width, height);
   }
 
   void WindowMac::windowContentsResized(int width, int height) {
