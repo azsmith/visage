@@ -248,7 +248,8 @@ namespace visage {
     return current_hit_test_;
   }
 
-  void WindowEventHandler::handleMouseMove(int x, int y, int button_state, int modifiers) {
+  void WindowEventHandler::handleMouseMove(int x, int y, int button_state, int modifiers,
+                                             int pointer_id) {
     MouseEvent mouse_event = mouseEvent(x, y, button_state, modifiers);
     if (window_->mouseRelativeMode() && mouse_event.relative_position == Point(0, 0))
       return;
@@ -284,9 +285,9 @@ namespace visage {
   }
 
   void WindowEventHandler::handleMouseDown(MouseButton button_id, int x, int y, int button_state,
-                                           int modifiers, int repeat) {
+                                           int modifiers, int repeat_clicks, int pointer_id) {
     MouseEvent mouse_event = buttonMouseEvent(button_id, x, y, button_state, modifiers);
-    mouse_event.repeat_click_count = repeat;
+    mouse_event.repeat_click_count = repeat_clicks;
 
     mouse_down_frame_ = content_frame_->frameAtPoint(mouse_event.window_position);
     temporary_frame_ = mouse_down_frame_;
@@ -309,9 +310,9 @@ namespace visage {
   }
 
   void WindowEventHandler::handleMouseUp(MouseButton button_id, int x, int y, int button_state,
-                                         int modifiers, int repeat) {
+                                         int modifiers, int repeat_clicks, int pointer_id) {
     MouseEvent mouse_event = buttonMouseEvent(button_id, x, y, button_state, modifiers);
-    mouse_event.repeat_click_count = repeat;
+    mouse_event.repeat_click_count = repeat_clicks;
 
     mouse_hovered_frame_ = content_frame_->frameAtPoint(mouse_event.window_position);
     bool exited = mouse_hovered_frame_ != mouse_down_frame_;

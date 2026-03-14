@@ -49,11 +49,12 @@ namespace visage {
 
     HitTestResult handleHitTest(int x, int y) override;
     HitTestResult currentHitTest() const override { return current_hit_test_; }
-    void handleMouseMove(int x, int y, int button_state, int modifiers) override;
+    void handleMouseMove(int x, int y, int button_state, int modifiers,
+                         int pointer_id = 0) override;
     void handleMouseDown(MouseButton button_id, int x, int y, int button_state, int modifiers,
-                         int repeat) override;
+                         int repeat_clicks, int pointer_id = 0) override;
     void handleMouseUp(MouseButton button_id, int x, int y, int button_state, int modifiers,
-                       int repeat) override;
+                       int repeat_clicks, int pointer_id = 0) override;
     void handleMouseEnter(int x, int y) override;
     void handleMouseLeave(int x, int y, int button_state, int modifiers) override;
     void handleMouseWheel(float delta_x, float delta_y, float precise_x, float precise_y, int x,

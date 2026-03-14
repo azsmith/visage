@@ -155,6 +155,9 @@ namespace visage {
 #elif VISAGE_MAC
     std::string platform = platformArgument(Platform::Mac);
     std::string profile = profileArgument(Backend::Metal, shader_type);
+#elif VISAGE_IOS
+    std::string platform = platformArgument(Platform::Mac);
+    std::string profile = profileArgument(Backend::Metal, shader_type);
 #elif VISAGE_EMSCRIPTEN
     std::string platform = platformArgument(Platform::Linux);
     std::string profile = profileArgument(Backend::Glsl, shader_type);
