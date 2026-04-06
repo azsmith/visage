@@ -23,6 +23,7 @@
 
 #if VISAGE_MAC
 #include "windowing.h"
+#include "visage_objc_prefix.h"
 
 #include <Carbon/Carbon.h>
 #include <Cocoa/Cocoa.h>
@@ -32,14 +33,17 @@ namespace visage {
   class WindowMac;
 }
 
+VISAGE_OBJC_RUNTIME("VisageDraggingSource")
 @interface VisageDraggingSource : NSObject <NSDraggingSource>
 @end
 
+VISAGE_OBJC_RUNTIME("VisageAppViewDelegate")
 @interface VisageAppViewDelegate : NSObject <MTKViewDelegate>
 @property(nonatomic) visage::WindowMac* visage_window;
 @property long long start_microseconds;
 @end
 
+VISAGE_OBJC_RUNTIME("VisageAppView")
 @interface VisageAppView : MTKView <NSDraggingDestination>
 @property(nonatomic) visage::WindowMac* visage_window;
 @property(strong) VisageDraggingSource* drag_source;
@@ -49,6 +53,7 @@ namespace visage {
 - (instancetype)initWithFrame:(NSRect)frame_rect inWindow:(visage::WindowMac*)window;
 @end
 
+VISAGE_OBJC_RUNTIME("VisageAppWindowDelegate")
 @interface VisageAppWindowDelegate : NSObject <NSWindowDelegate>
 @property(nonatomic) visage::WindowMac* visage_window;
 @property(nonatomic, retain) NSWindow* window_handle;
@@ -56,6 +61,7 @@ namespace visage {
 @property bool resizing_vertical;
 @end
 
+VISAGE_OBJC_RUNTIME("VisageAppDelegate")
 @interface VisageAppDelegate : NSObject <NSApplicationDelegate>
 @property(nonatomic, retain) NSWindow* window_handle;
 @property(nonatomic, strong) VisageAppWindowDelegate* window_delegate;
