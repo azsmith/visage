@@ -922,8 +922,14 @@ namespace visage {
     hide();
     view_.visage_window = nullptr;
 
-    if (parent_view_)
-      [view_ removeFromSuperview];
+    if (parent_view_) {
+      @try {
+        [view_ removeFromSuperview];
+      } @catch (NSException*) {
+        // Constraint removal can throw during host-initiated teardown
+        // when the window is already detached from the display cycle
+      }
+    }
   }
 
   void WindowMac::createWindow() {
