@@ -496,7 +496,7 @@ namespace visage {
                                state_.y + pixels(y), pixels(width), pixels(height),
                                path.stroke(pixels(stroke_width), join, end_cap, dash_array,
                                            dash_offset, miter_limit),
-                               state_.scale));
+                               pathAtlas(), state_.scale));
     }
 
     void saveState() { state_memory_.push_back(state_); }

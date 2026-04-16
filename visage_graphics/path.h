@@ -401,7 +401,7 @@ namespace visage {
                 float miter_limit = kDefaultMiterLimit);
     Path stroke(float stroke_width, Join join = Join::Round, EndCap end_cap = EndCap::Round,
                 std::vector<float> dash_array = {}, float dash_offset = 0.0f,
-                float miter_limit = kDefaultMiterLimit);
+                float miter_limit = kDefaultMiterLimit) const;
 
     Path scaled(float mult) const {
       Path result = *this;
