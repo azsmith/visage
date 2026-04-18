@@ -11,6 +11,14 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "iOS")
 elseif (APPLE)
   file(GLOB PLATFORM_SOURCE_FILES macos/*.mm)
   file(GLOB PLATFORM_HEADER_FILES macos/*.h)
+
+  # Allow consumers to compile windowing_macos.mm themselves so its
+  # VISAGE_OBJC_RUNTIME-decorated classes get per-variant runtime names
+  # (avoids ObjC class collisions when two host plugin bundles that both
+  # embed libvisage.a are loaded into the same process).
+  if (VISAGE_EXTERNAL_WINDOWING_MM)
+    list(REMOVE_ITEM PLATFORM_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/macos/windowing_macos.mm)
+  endif ()
 elseif (UNIX)
   file(GLOB PLATFORM_SOURCE_FILES linux/*.cpp)
   file(GLOB PLATFORM_HEADER_FILES linux/*.h)
