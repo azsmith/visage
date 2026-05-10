@@ -166,7 +166,8 @@ namespace visage {
     if (files.empty())
       return false;
 
-    temporary_frame_ = dragDropFrame(convertToLogical(IPoint(x, y)), files);
+    Point point = convertToLogical(IPoint(x, y));
+    temporary_frame_ = dragDropFrame(point, files);
     if (mouse_down_frame_ == temporary_frame_ && temporary_frame_) {
       temporary_frame_ = nullptr;
       return true;
@@ -179,6 +180,11 @@ namespace visage {
       if (temporary_frame_)
         temporary_frame_->dragFilesEnter(files);
       drag_drop_target_frame_ = temporary_frame_;
+    }
+
+    if (temporary_frame_) {
+      Point frame_position = temporary_frame_->positionInWindow();
+      temporary_frame_->dragFilesMove(point - frame_position, files);
     }
 
     temporary_frame_ = nullptr;

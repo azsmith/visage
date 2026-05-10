@@ -107,6 +107,7 @@ namespace visage {
     virtual std::string dragDropFileExtensionRegex() { return ".*"; }
     virtual bool receivesMultipleDragDropFiles() { return false; }
     virtual void dragFilesEnter(const std::vector<std::string>& paths) { }
+    virtual void dragFilesMove(Point position, const std::vector<std::string>& paths) { }
     virtual void dragFilesExit() { }
     virtual void dropFiles(const std::vector<std::string>& paths) { }
     virtual bool isDragDropSource() { return false; }
