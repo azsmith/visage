@@ -1477,7 +1477,14 @@ namespace visage {
     static constexpr int kWindowFlags = WS_CHILD;
 
     DpiAwareness dpi_awareness;
-    setDpiScale(dpi_awareness.dpiScale());
+    // Use the parent (host) window's per-monitor DPI, not the system DPI.
+    // GetDpiForSystem can report a different scale than the monitor the host
+    // window is actually on (e.g. a 175% handheld panel reporting a 100%
+    // system baseline), which collapses the rendered area to
+    // window * (systemScale / monitorScale). The standalone WindowWin32 ctor
+    // above already uses the per-window overload — match it here.
+    HWND parent_hwnd = static_cast<HWND>(parent_handle);
+    setDpiScale(parent_hwnd ? dpi_awareness.dpiScale(parent_hwnd) : dpi_awareness.dpiScale());
 
     registerWindowClass();
     window_class_.lpfnWndProc = windowProcedure;
