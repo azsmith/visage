@@ -135,7 +135,9 @@ namespace visage {
     bgfx_init.resolution.width = 1;
     bgfx_init.resolution.height = 1;
 #elif VISAGE_LINUX
-    bgfx_init.type = bgfx::RendererType::Vulkan;
+    // OpenGL on Linux: Vulkan WSI needs DRI3 (absent on Xwayland/remote sessions
+    // -> black window). GL presents via GLX; glsl shaders are embedded.
+    bgfx_init.type = bgfx::RendererType::OpenGL;
 #elif VISAGE_EMSCRIPTEN
     bgfx_init.type = bgfx::RendererType::OpenGLES;
 #endif
