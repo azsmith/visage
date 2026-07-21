@@ -68,7 +68,53 @@ FetchContent_Declare(bgfx GIT_REPOSITORY https://github.com/bkaradzic/bgfx.cmake
   GIT_TAG v1.129.8958-499
   EXCLUDE_FROM_ALL
 )
+# bgfx.cmake declares cmake_minimum_required(VERSION 3.10.2), which forces policy CMP0091 to
+# OLD for its subtree. Under OLD, CMake ignores the project-wide CMAKE_MSVC_RUNTIME_LIBRARY
+# (static /MT) and takes the runtime library from the default /MD flags in CMAKE_<LANG>_FLAGS,
+# so bgfx/bx/bimg compile against the dynamic CRT. A plugin that mixes our /MT code with /MD
+# bgfx links without error but gains a hidden dependency on the VC++ redistributable and fails
+# to load on machines that lack it ("Could not be loaded" in the host). Temporarily swap
+# /MD -> /MT in the default C and C++ flags around the bgfx build, mirroring the AAX SDK
+# workaround in iPlug2/Scripts/cmake/AAX.cmake. Restored afterward so later targets (freetype,
+# VisageGraphics) keep selecting the runtime via CMAKE_MSVC_RUNTIME_LIBRARY.
+if (MSVC)
+  set(_saved_c_flags_release "${CMAKE_C_FLAGS_RELEASE}")
+  set(_saved_c_flags_debug "${CMAKE_C_FLAGS_DEBUG}")
+  set(_saved_c_flags_relwithdebinfo "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+  set(_saved_c_flags_minsizerel "${CMAKE_C_FLAGS_MINSIZEREL}")
+  set(_saved_cxx_flags_release "${CMAKE_CXX_FLAGS_RELEASE}")
+  set(_saved_cxx_flags_debug "${CMAKE_CXX_FLAGS_DEBUG}")
+  set(_saved_cxx_flags_relwithdebinfo "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+  set(_saved_cxx_flags_minsizerel "${CMAKE_CXX_FLAGS_MINSIZEREL}")
+  string(REPLACE "/MDd" "/MTd" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+  string(REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+  string(REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+  string(REPLACE "/MD" "/MT" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
+  string(REPLACE "/MDd" "/MTd" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+  string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+  string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+  string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL}")
+endif ()
+
 FetchContent_MakeAvailable(bgfx)
+
+if (MSVC)
+  set(CMAKE_C_FLAGS_RELEASE "${_saved_c_flags_release}")
+  set(CMAKE_C_FLAGS_DEBUG "${_saved_c_flags_debug}")
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO "${_saved_c_flags_relwithdebinfo}")
+  set(CMAKE_C_FLAGS_MINSIZEREL "${_saved_c_flags_minsizerel}")
+  set(CMAKE_CXX_FLAGS_RELEASE "${_saved_cxx_flags_release}")
+  set(CMAKE_CXX_FLAGS_DEBUG "${_saved_cxx_flags_debug}")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${_saved_cxx_flags_relwithdebinfo}")
+  set(CMAKE_CXX_FLAGS_MINSIZEREL "${_saved_cxx_flags_minsizerel}")
+endif ()
+
+# Belt-and-suspenders: also set the runtime-library property on the bgfx family in case a future
+# bgfx.cmake bumps its cmake_minimum_required to >= 3.15 (CMP0091 NEW), where this is what counts.
+if (MSVC)
+  set_target_properties(bgfx bx bimg bimg_decode bimg_encode PROPERTIES
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif ()
 
 FetchContent_Declare(freetype GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git
   GIT_SHALLOW TRUE
