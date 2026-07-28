@@ -29,8 +29,15 @@ namespace visage {
   class EmojiRasterizer {
   public:
     static EmojiRasterizer& instance() {
-      static EmojiRasterizer instance;
-      return instance;
+      // Deliberately leaked. The rasterizer owns D2D/DWrite/WIC factories and
+      // (indirectly) a WARP D3D device; releasing those from a static
+      // destructor runs inside LdrShutdownProcess/FreeLibrary under the loader
+      // lock, after the host may have killed worker threads and torn down COM,
+      // and crashes hosts that exit or unload the plugin DLL (observed as
+      // fatal 0xc000000d in D3D10Warp via d2d1 teardown). The OS reclaims
+      // everything at process exit; never run this teardown ourselves.
+      static EmojiRasterizer* instance = new EmojiRasterizer();
+      return *instance;
     }
 
     void drawIntoBuffer(char32_t emoji, int font_size, int write_width, unsigned int* dest,
