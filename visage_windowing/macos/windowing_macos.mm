@@ -981,13 +981,8 @@ namespace visage {
     [window_handle_ makeFirstResponder:view_];
     [NSApp activateIgnoringOtherApps:YES];
     resetBackingScale();
-
-    CGSize drawable_size = view_.drawableSize;
-    int width = drawable_size.width > 0.0 ? std::round(drawable_size.width)
-                                          : std::round(view_.bounds.size.width * dpiScale());
-    int height = drawable_size.height > 0.0 ? std::round(drawable_size.height)
-                                            : std::round(view_.bounds.size.height * dpiScale());
-    handleResized(width, height);
+    handleResized(std::round(view_.bounds.size.width * dpiScale()),
+                  std::round(view_.bounds.size.height * dpiScale()));
   }
 
   void WindowMac::resetBackingScale() {
@@ -1001,12 +996,11 @@ namespace visage {
     if (std::abs(previous_scale - new_scale) < 0.001f)
       return;
 
-    CGSize drawable_size = view_.drawableSize;
-    int width = drawable_size.width > 0.0 ? std::round(drawable_size.width)
-                                          : std::round(view_.bounds.size.width * new_scale);
-    int height = drawable_size.height > 0.0 ? std::round(drawable_size.height)
-                                            : std::round(view_.bounds.size.height * new_scale);
-    handleResized(width, height);
+    // Size from the view bounds, not drawableSize: the drawable still holds the
+    // old scale's pixel count here, so a 1x main screen + 2x host window gave a
+    // half-size editor in the corner of the plugin window.
+    handleResized(std::round(view_.bounds.size.width * new_scale),
+                  std::round(view_.bounds.size.height * new_scale));
   }
 
   void WindowMac::windowContentsResized(int width, int height) {
