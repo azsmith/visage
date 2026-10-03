@@ -81,6 +81,10 @@ namespace visage {
 
   void WindowEventHandler::handleResized(int width, int height) {
     VISAGE_ASSERT(width >= 0 && height >= 0);
+    // setNativeBounds divides by the frame's cached scale. Refresh it first: after a
+    // backing-scale change at an unchanged pixel size, the logical size would
+    // otherwise stay at the old scale and resized() would never fire.
+    content_frame_->setDpiScale(window_->dpiScale());
     content_frame_->setNativeBounds(0, 0, width, height);
     content_frame_->redraw();
   }

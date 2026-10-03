@@ -646,6 +646,12 @@ namespace visage {
     self.visage_window->resetBackingScale();
 }
 
+- (void)viewDidMoveToWindow {
+  [super viewDidMoveToWindow];
+  if (self.visage_window && self.window)
+    self.visage_window->resetBackingScale();
+}
+
 - (void)viewWillMoveToWindow:(NSWindow*)new_window {
   [super viewWillMoveToWindow:new_window];
 
@@ -986,19 +992,23 @@ namespace visage {
   }
 
   void WindowMac::resetBackingScale() {
-    if (window_handle_ == nullptr)
+    // An AUv2 view is created with no parent and embedded by the host later, so
+    // window_handle_ stays null; use the window the view is actually in. Without
+    // this the scale stayed at NSScreen.mainScreen's, and a 2x main screen with
+    // the plugin window on a 1x display drew a half-size editor in the corner.
+    NSWindow* window = window_handle_ ? window_handle_ : view_.window;
+    if (window == nil)
       return;
 
     float previous_scale = dpiScale();
-    float new_scale = [window_handle_ backingScaleFactor];
+    float new_scale = [window backingScaleFactor];
     setDpiScale(new_scale);
 
     if (std::abs(previous_scale - new_scale) < 0.001f)
       return;
 
-    // Size from the view bounds, not drawableSize: the drawable still holds the
-    // old scale's pixel count here, so a 1x main screen + 2x host window gave a
-    // half-size editor in the corner of the plugin window.
+    // Size from the view bounds, not drawableSize, which still holds the old
+    // scale's pixel count here.
     handleResized(std::round(view_.bounds.size.width * new_scale),
                   std::round(view_.bounds.size.height * new_scale));
   }
