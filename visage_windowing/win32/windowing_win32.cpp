@@ -307,7 +307,12 @@ namespace visage {
 
   class DpiAwareness {
   public:
-    DpiAwareness() {
+    // With a reference window, adopt that window's DPI awareness instead of per-monitor v2.
+    // A plugin's child window must match its host parent: a host can run a plugin's parent
+    // DPI-unaware and let Windows bitmap-scale it (Ableton Live's "Auto-Scale Plug-In Window").
+    // A per-monitor-aware child of such a parent is sized and drawn in physical pixels inside
+    // a virtualised parent, and only systemScale/monitorScale of it shows.
+    explicit DpiAwareness(HWND reference = nullptr) {
       HMODULE user32 = LoadLibraryA("user32.dll");
       if (user32 == nullptr)
         return;
@@ -318,12 +323,21 @@ namespace visage {
           procedure<SetThreadDpiAwarenessContext_t>(user32, "SetThreadDpiAwarenessContext");
       dpiForWindow_ = procedure<GetDpiForWindow_t>(user32, "GetDpiForWindow");
       dpiForSystem_ = procedure<GetDpiForSystem_t>(user32, "GetDpiForSystem");
+      auto windowDpiAwarenessContext =
+          procedure<GetWindowDpiAwarenessContext_t>(user32, "GetWindowDpiAwarenessContext");
       if (threadDpiAwarenessContext_ == nullptr || setThreadDpiAwarenessContext_ == nullptr ||
           dpiForWindow_ == nullptr || dpiForSystem_ == nullptr) {
         return;
       }
 
       previous_dpi_awareness_ = threadDpiAwarenessContext_();
+      if (reference && windowDpiAwarenessContext) {
+        DPI_AWARENESS_CONTEXT reference_awareness = windowDpiAwarenessContext(reference);
+        if (reference_awareness && setThreadDpiAwarenessContext_(reference_awareness)) {
+          dpi_awareness_ = reference_awareness;
+          return;
+        }
+      }
       dpi_awareness_ = DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2;
       if (!setThreadDpiAwarenessContext_(dpi_awareness_)) {
         dpi_awareness_ = DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE;
@@ -1440,7 +1454,7 @@ namespace visage {
       return std::make_unique<WindowWin32>(bounds.width(), bounds.height(), parent_handle);
     }
 
-    DpiAwareness dpi_awareness;
+    DpiAwareness dpi_awareness(parent);
     float dpi_scale = dpi_awareness.dpiScale(parent);
     HMONITOR monitor = MonitorFromWindow(parent, MONITOR_DEFAULTTONEAREST);
     IBounds bounds = boundsInMonitor(monitor, dpi_scale, 0, 0, width, height);
@@ -1489,14 +1503,14 @@ namespace visage {
   WindowWin32::WindowWin32(int width, int height, void* parent_handle) : Window(width, height) {
     static constexpr int kWindowFlags = WS_CHILD;
 
-    DpiAwareness dpi_awareness;
-    // Use the parent (host) window's per-monitor DPI, not the system DPI.
-    // GetDpiForSystem can report a different scale than the monitor the host
-    // window is actually on (e.g. a 175% handheld panel reporting a 100%
-    // system baseline), which collapses the rendered area to
-    // window * (systemScale / monitorScale). The standalone WindowWin32 ctor
-    // above already uses the per-window overload — match it here.
+    // Use the parent (host) window's DPI and DPI awareness, not the system DPI or per-monitor
+    // awareness. GetDpiForSystem can report a different scale than the monitor the host
+    // window is actually on (e.g. a 175% handheld panel reporting a 100% system baseline),
+    // and a DPI-unaware host parent needs a DPI-unaware child; either mismatch collapses
+    // the rendered area to a fraction of the window. The child is created below while this
+    // awareness is current, so it inherits the parent's.
     HWND parent_hwnd = static_cast<HWND>(parent_handle);
+    DpiAwareness dpi_awareness(parent_hwnd);
     setDpiScale(parent_hwnd ? dpi_awareness.dpiScale(parent_hwnd) : dpi_awareness.dpiScale());
 
     registerWindowClass();
@@ -1553,7 +1567,7 @@ namespace visage {
     if (window_handle_ == nullptr)
       return;
 
-    DpiAwareness dpi_awareness;
+    DpiAwareness dpi_awareness(window_handle_);
     RECT rect;
     GetWindowRect(window_handle_, &rect);
     int x = rect.left;
@@ -1743,13 +1757,15 @@ namespace visage {
   }
 
   void WindowWin32::handleResizeEnd(HWND hwnd) {
+    // Measure in the window's own coordinate space; a host thread of different DPI awareness
+    // would otherwise report a virtualised child's rect in physical pixels.
+    DpiAwareness dpi_awareness(hwnd);
     IBounds borders = windowBorderSize(hwnd);
     RECT rect;
     GetWindowRect(hwnd, &rect);
     int width = rect.right - rect.left - borders.width();
     int height = rect.bottom - rect.top - borders.height();
 
-    DpiAwareness dpi_awareness;
     setDpiScale(dpi_awareness.dpiScale(hwnd));
     handleResized(width, height);
   }
