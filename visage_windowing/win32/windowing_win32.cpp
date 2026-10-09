@@ -1430,7 +1430,20 @@ namespace visage {
 
   std::unique_ptr<Window> createPluginWindow(const Dimension& width, const Dimension& height,
                                              void* parent_handle) {
-    IBounds bounds = computeWindowBounds(0, 0, width, height);
+    // Size the child in the parent's monitor DPI: the same scale WindowWin32 draws at
+    // (d39fa2b). Sizing from the system DPI while drawing at the monitor DPI leaves the
+    // backbuffer at systemScale/monitorScale of the content, e.g. only the top-left 2/3
+    // of the editor visible on a 150% handheld whose system baseline is 100%.
+    HWND parent = static_cast<HWND>(parent_handle);
+    if (parent == nullptr) {
+      IBounds bounds = computeWindowBounds(0, 0, width, height);
+      return std::make_unique<WindowWin32>(bounds.width(), bounds.height(), parent_handle);
+    }
+
+    DpiAwareness dpi_awareness;
+    float dpi_scale = dpi_awareness.dpiScale(parent);
+    HMONITOR monitor = MonitorFromWindow(parent, MONITOR_DEFAULTTONEAREST);
+    IBounds bounds = boundsInMonitor(monitor, dpi_scale, 0, 0, width, height);
     return std::make_unique<WindowWin32>(bounds.width(), bounds.height(), parent_handle);
   }
 
